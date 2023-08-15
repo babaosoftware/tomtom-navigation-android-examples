@@ -7,6 +7,14 @@ apply from: '../dependencies.gradle'
 android {
     namespace = "com.tomtom.sdk.examples"
     compileSdk 33
+    signingConfigs {
+        release {
+            storeFile file('/Users/teludumitru/StudioProjects/ugps3/extras/ugpsnav.key')
+            storePassword 'ugpsnav'
+            keyAlias 'ugpsnav'
+            keyPassword 'ugpsnav'
+        }
+    }
 
     defaultConfig {
         applicationId "com.tomtom.sdk.examples"
@@ -27,6 +35,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
 
     }
@@ -47,7 +56,7 @@ android {
     }
 
     buildTypes.each {
-        it.buildConfigField 'String', 'TOMTOM_API_KEY', "\"$tomtomApiKey\""
+        it.buildConfigField 'String', 'TOMTOM_API_KEY', "\"ICqQvGMGbu49DQmGhhwbzI78dvAUG9eV\""
     }
 
     viewBinding {
