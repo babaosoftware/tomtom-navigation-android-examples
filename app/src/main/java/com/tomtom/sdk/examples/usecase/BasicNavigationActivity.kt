@@ -440,8 +440,6 @@ class BasicNavigationActivity : AppCompatActivity() {
             GeoPoint(41.417584, -73.507896),
             GeoPoint(41.417485, -73.508048),
             GeoPoint(41.417304, -73.508247),
-            GeoPoint(41.416492, -73.508994),
-            GeoPoint(41.416485, -73.509),
         ),
     )
 
