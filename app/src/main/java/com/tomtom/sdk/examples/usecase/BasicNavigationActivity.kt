@@ -14,11 +14,14 @@ package com.tomtom.sdk.examples.usecase
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.tomtom.quantity.Speed
+import com.tomtom.sdk.common.measures.UnitSystem
 import com.tomtom.sdk.examples.BuildConfig
 import com.tomtom.sdk.examples.R
 import com.tomtom.sdk.location.GeoLocation
@@ -71,6 +74,9 @@ import com.tomtom.sdk.routing.options.guidance.*
 import com.tomtom.sdk.routing.route.Route
 import com.tomtom.sdk.routing.route.Waypoint
 import com.tomtom.sdk.vehicle.Vehicle
+import java.io.IOException
+import java.io.OutputStreamWriter
+import java.util.Locale
 
 /**
  * This example shows how to build a simple navigation application using the TomTom Navigation SDK for Android.
@@ -293,7 +299,7 @@ class BasicNavigationActivity : AppCompatActivity() {
     //     routePlanner.planRoute(routePlanningOptions, routePlanningCallback)
     // }
 
-    val track = mutableListOf(
+    private val track = mutableListOf(
         listOf(
             GeoPoint(41.424386, -73.502532),
             GeoPoint(41.424028, -73.50241),
@@ -474,11 +480,12 @@ class BasicNavigationActivity : AppCompatActivity() {
         routePlanningOptions = RoutePlanningOptions(
             itinerary = itinerary,
             guidanceOptions = GuidanceOptions(
-            instructionType = InstructionType.Text,
-            phoneticsType = InstructionPhoneticsType.Ipa,
-            announcementPoints = AnnouncementPoints.All,
-            extendedSections = ExtendedSections.All,
-            progressPoints = ProgressPoints.None
+                instructionType = InstructionType.Text,
+                phoneticsType = InstructionPhoneticsType.Ipa,
+                announcementPoints = AnnouncementPoints.All,
+                extendedSections = ExtendedSections.All,
+                progressPoints = ProgressPoints.All,
+                language = Locale.US,
         ),
             costModel = CostModel(
                 RouteType.Short,
@@ -489,6 +496,7 @@ class BasicNavigationActivity : AppCompatActivity() {
             routeLegOptions = routeLegOptions,
             arrivalSidePreference = ArrivalSidePreference.AnySide,
         )
+
         routePlanner.planRoute(routePlanningOptions, routePlanningCallback)
         tomTomNavigation.addRouteDeviationListener(routeDeviationListener)
     }
@@ -553,6 +561,16 @@ class BasicNavigationActivity : AppCompatActivity() {
     
             val updatedWaypoints = (tempTrack.map { it.last() }).toMutableList()
             updatedWaypoints.removeLast() // destination is passed separately
+
+            var removed: GeoPoint? = null
+            tempTrack.removeIf {
+                if (waypointsReachedMap?.get(it.first()) == true)
+                    removed = it.last()
+                waypointsReachedMap?.get(it.first()) == true
+            }
+            removed?.let {
+                tempTrack.add(index = 0, listOf(it))
+            }
     
             // add the markers
             // updatedWaypoints.forEach {
@@ -589,7 +607,8 @@ class BasicNavigationActivity : AppCompatActivity() {
                     phoneticsType = InstructionPhoneticsType.Ipa,
                     announcementPoints = AnnouncementPoints.All,
                     extendedSections = ExtendedSections.All,
-                    progressPoints = ProgressPoints.None,
+                    progressPoints = ProgressPoints.All,
+                    language = Locale.US,
                 ),
                 waypointOptimization = WaypointOptimization.None,
                 vehicle = Vehicle.Bus(),
@@ -619,6 +638,7 @@ class BasicNavigationActivity : AppCompatActivity() {
             drawRoute(route!!)
             val routePlan = RoutePlan(route!!, routePlanningOptions)
             navigationFragment.update(routePlan)
+            navigationFragment.setUnits(UnitSystemType.Fixed(UnitSystem.US))
         }
 
         override fun onFailure(failure: RoutingFailure) {
@@ -712,8 +732,10 @@ class BasicNavigationActivity : AppCompatActivity() {
      * Used to initialize the NavigationFragment to display the UI navigation information,
      */
     private fun initNavigationFragment() {
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         val navigationUiOptions = NavigationUiOptions(
-            keepInBackground = true
+            keepInBackground = true,
+            units = UnitSystem.US,
         )
         navigationFragment = NavigationFragment.newInstance(navigationUiOptions)
         supportFragmentManager.beginTransaction()
@@ -728,32 +750,239 @@ class BasicNavigationActivity : AppCompatActivity() {
     /**
      * Use the SimulationLocationProvider for testing purposes.
      */
-    // private fun setSimulationLocationProviderToNavigation(route: Route) {
-    //     // val routeGeoLocations = route.geometry.map { GeoLocation(it) }
-    //     val simulation = listOf(
-    //         GeoPoint(52.324592, 4.869293),
-    //         GeoPoint(52.324579, 4.870189),
-    //         GeoPoint(52.323271, 4.872340),
-    //         GeoPoint(52.324641, 4.872281),
-    //         GeoPoint(52.324677, 4.874609),
-    //         GeoPoint(52.326985, 4.874459)
-    //     ).map { GeoLocation(it) }
-    //     val simulationStrategy = InterpolationStrategy(simulation)
-    //     locationProvider = SimulationLocationProvider.create(strategy = simulationStrategy)
-    //     tomTomNavigation.locationProvider = locationProvider
-    //     locationProvider.enable()
-    // }
+     private fun setSimulationLocationProviderToNavigation(route: Route) {
+         // val routeGeoLocations = route.geometry.map { GeoLocation(it) }
+        val simulation = listOf(
+            GeoPoint(41.4252624, -73.4898075),
+            GeoPoint(41.4252886, -73.4899414),
+            GeoPoint(41.4253718, -73.4902284),
+            GeoPoint(41.4255676, -73.490687),
+            GeoPoint(41.4256454, -73.4908211),
+            GeoPoint(41.4261684, -73.4915346),
+            GeoPoint(41.4262488, -73.4916526),
+            GeoPoint(41.426906, -73.4929213),
+            GeoPoint(41.4270079, -73.4930715),
+            GeoPoint(41.4273003, -73.4933773),
+            GeoPoint(41.4275095, -73.4935328),
+            GeoPoint(41.4280728, -73.4938627),
+            GeoPoint(41.4282283, -73.4939861),
+            GeoPoint(41.4282954, -73.4940585),
+            GeoPoint(41.4283517, -73.4941417),
+            GeoPoint(41.4286387, -73.4946433),
+            GeoPoint(41.4289525, -73.4950885),
+            GeoPoint(41.4290732, -73.4952307),
+            GeoPoint(41.4296257, -73.495743),
+            GeoPoint(41.4297599, -73.4959012),
+            GeoPoint(41.4298457, -73.4960702),
+            GeoPoint(41.4299262, -73.4963009),
+            GeoPoint(41.4299637, -73.4965503),
+            GeoPoint(41.4299771, -73.4971082),
+            GeoPoint(41.4300147, -73.4981543),
+            GeoPoint(41.4300415, -73.4985352),
+            GeoPoint(41.4300549, -73.498731),
+            GeoPoint(41.4301327, -73.4999996),
+            GeoPoint(41.4301649, -73.5002142),
+            GeoPoint(41.4302158, -73.5005495),
+            GeoPoint(41.4302427, -73.5007319),
+            GeoPoint(41.4303151, -73.5009679),
+            GeoPoint(41.4310044, -73.5027623),
+            GeoPoint(41.4311332, -73.5030761),
+            GeoPoint(41.4314309, -73.5037601),
+            GeoPoint(41.4317957, -73.5044816),
+            GeoPoint(41.4318815, -73.504613),
+            GeoPoint(41.4321604, -73.5049322),
+            GeoPoint(41.4324635, -73.5052058),
+            GeoPoint(41.4324528, -73.5054338),
+            GeoPoint(41.4324287, -73.5056216),
+            GeoPoint(41.4322221, -73.5067239),
+            GeoPoint(41.4320317, -73.5075903),
+            GeoPoint(41.4319244, -73.5080141),
+            GeoPoint(41.4314792, -73.5078639),
+            GeoPoint(41.4313987, -73.5078397),
+            GeoPoint(41.4311868, -73.5078022),
+            GeoPoint(41.4308649, -73.5078022),
+            GeoPoint(41.4304063, -73.5077941),
+            GeoPoint(41.4302856, -73.507778),
+            GeoPoint(41.4302239, -73.507762),
+            GeoPoint(41.430079, -73.5077083),
+            GeoPoint(41.4300308, -73.5076815),
+            GeoPoint(41.4299369, -73.507601),
+            GeoPoint(41.4296097, -73.5072416),
+            GeoPoint(41.4286065, -73.5060185),
+            GeoPoint(41.4282015, -73.5055411),
+            GeoPoint(41.4278287, -73.5051441),
+            GeoPoint(41.4275363, -73.5048518),
+            GeoPoint(41.4273164, -73.5046345),
+            GeoPoint(41.4267853, -73.5041302),
+            GeoPoint(41.4267477, -73.5040954),
+            GeoPoint(41.426383, -73.5037279),
+            GeoPoint(41.4257687, -73.5030842),
+            GeoPoint(41.4254978, -73.5028616),
+            GeoPoint(41.4254361, -73.502816),
+            GeoPoint(41.4253074, -73.5027489),
+            GeoPoint(41.4252403, -73.5027248),
+            GeoPoint(41.4245564, -73.5025612),
+            GeoPoint(41.4244142, -73.5025236),
+            GeoPoint(41.4242506, -73.5024807),
+            GeoPoint(41.4237598, -73.5023198),
+            GeoPoint(41.4235827, -73.5022366),
+            GeoPoint(41.4235452, -73.5022125),
+            GeoPoint(41.4232796, -73.5019979),
+            GeoPoint(41.4230517, -73.5017833),
+            GeoPoint(41.4230248, -73.5018289),
+            GeoPoint(41.4230034, -73.5018745),
+            GeoPoint(41.4227834, -73.5024753),
+            GeoPoint(41.422534, -73.5030922),
+            GeoPoint(41.4228693, -73.5033497),
+            GeoPoint(41.4230222, -73.5034999),
+            GeoPoint(41.4230973, -73.5036072),
+            GeoPoint(41.4231107, -73.5036716),
+            GeoPoint(41.4231133, -73.5037199),
+            GeoPoint(41.423108, -73.5038057),
+            GeoPoint(41.4231053, -73.5038379),
+            GeoPoint(41.4230593, -73.5040472),
+            GeoPoint(41.4230222, -73.5042161),
+            GeoPoint(41.4229551, -73.5044146),
+            GeoPoint(41.4227727, -73.5047847),
+            GeoPoint(41.4227057, -73.5048705),
+            GeoPoint(41.4226654, -73.5049054),
+            GeoPoint(41.4224723, -73.5050583),
+            GeoPoint(41.4222229, -73.5051951),
+            GeoPoint(41.4220136, -73.5052836),
+            GeoPoint(41.4218768, -73.5053158),
+            GeoPoint(41.4213726, -73.5053399),
+            GeoPoint(41.4211527, -73.5053265),
+            GeoPoint(41.42104, -73.5053185),
 
-    private fun setSimulationLocationProviderToNavigation(route: Route) {
+//            GeoPoint(41.4212224, -73.5046721),
+//            GeoPoint(41.4213967, -73.504141),
+//            GeoPoint(41.4215386, -73.5037174),
+//            GeoPoint(41.4215925, -73.5035563),
+//            GeoPoint(41.4216301, -73.5033953),
+//            GeoPoint(41.4217454, -73.503111),
+//            GeoPoint(41.4217749, -73.5030735),
+//            GeoPoint(41.4218473, -73.5029903),
+//            GeoPoint(41.4218956, -73.5029581),
+//            GeoPoint(41.4219519, -73.5029393),
+//            GeoPoint(41.4220458, -73.5029259),
+//            GeoPoint(41.4221853, -73.5029635),
+//            GeoPoint(41.422534, -73.5030922),
+//            GeoPoint(41.4228693, -73.5033497),
+//            GeoPoint(41.4230222, -73.5034999),
+//            GeoPoint(41.4230973, -73.5036072),
+//            GeoPoint(41.4231107, -73.5036716),
+//            GeoPoint(41.4231133, -73.5037199),
+//            GeoPoint(41.423108, -73.5038057),
+//            GeoPoint(41.4231053, -73.5038379),
+//            GeoPoint(41.4230222, -73.5042161),
+//            GeoPoint(41.4229551, -73.5044146),
+//            GeoPoint(41.4227727, -73.5047847),
+//            GeoPoint(41.4227057, -73.5048705),
+//            GeoPoint(41.4226654, -73.5049054),
+//            GeoPoint(41.4224723, -73.5050583),
+//            GeoPoint(41.4222229, -73.5051951),
+//            GeoPoint(41.4220136, -73.5052836),
+//            GeoPoint(41.4218768, -73.5053158),
+//            GeoPoint(41.4213726, -73.5053399),
+//            GeoPoint(41.4211527, -73.5053265),
+//            GeoPoint(41.42104, -73.5053185),
 
-        val interpolationStrategy = InterpolationStrategy(
-            locations = route.geometry.map { GeoLocation(it) },
-            currentSpeed = Speed.Companion.milesPerHour(simulationSpeed)
+            GeoPoint(41.4206967, -73.5052541),
+            GeoPoint(41.4205706, -73.5052165),
+            GeoPoint(41.4202675, -73.5050824),
+            GeoPoint(41.4194039, -73.5046506),
+            GeoPoint(41.4187306, -73.5042858),
+            GeoPoint(41.418457, -73.5041222),
+            GeoPoint(41.4182612, -73.5040069),
+            GeoPoint(41.4181083, -73.5038996),
+            GeoPoint(41.4179286, -73.5037467),
+            GeoPoint(41.4178079, -73.5040283),
+            GeoPoint(41.417757, -73.5043582),
+            GeoPoint(41.417757, -73.5046372),
+            GeoPoint(41.4178294, -73.5053346),
+            GeoPoint(41.4178616, -73.5056296),
+            GeoPoint(41.4170864, -73.505761),
+            GeoPoint(41.4166975, -73.5058442),
+            GeoPoint(41.4164802, -73.5059139),
+            GeoPoint(41.4163569, -73.5059756),
+            GeoPoint(41.4161959, -73.5061097),
+            GeoPoint(41.4155821, -73.5054255),
+            GeoPoint(41.4155415, -73.5053802),
+            GeoPoint(41.4153644, -73.5051683),
+            GeoPoint(41.415066, -73.5047586),
+            GeoPoint(41.4147234, -73.5042885),
+            GeoPoint(41.4145506, -73.5040394),
+            GeoPoint(41.414195, -73.5035267),
+            GeoPoint(41.4139697, -73.5032398),
+            GeoPoint(41.4138409, -73.5031325),
+            GeoPoint(41.4137793, -73.5031056),
+            GeoPoint(41.4135513, -73.5030922),
+            GeoPoint(41.4134708, -73.503111),
+            GeoPoint(41.4133823, -73.5031539),
+            GeoPoint(41.4131194, -73.503406),
+            GeoPoint(41.4128941, -73.503677),
+            GeoPoint(41.412811, -73.5037977),
+            GeoPoint(41.4127707, -73.5038862),
+            GeoPoint(41.4127225, -73.5040793),
+            GeoPoint(41.4127117, -73.5042483),
+            GeoPoint(41.4127144, -73.5043073),
+            GeoPoint(41.4127305, -73.5043985),
+            GeoPoint(41.4127627, -73.5045084),
+            GeoPoint(41.4128217, -73.5046506),
+            GeoPoint(41.41298, -73.5049),
+            GeoPoint(41.4135218, -73.5056832),
+            GeoPoint(41.4136559, -73.5059246),
+            GeoPoint(41.4138597, -73.5062921),
+            GeoPoint(41.4139134, -73.5064369),
+            GeoPoint(41.4139751, -73.5066757),
+            GeoPoint(41.4141414, -73.5073489),
+            GeoPoint(41.4142379, -73.50777),
+            GeoPoint(41.4143103, -73.5080114),
+            GeoPoint(41.4144203, -73.5081965),
+            GeoPoint(41.4145008, -73.5082984),
+            GeoPoint(41.4146295, -73.5084084),
+            GeoPoint(41.4148629, -73.5085639),
+            GeoPoint(41.4150023, -73.5082769),
+            GeoPoint(41.4159223, -73.5065684),
+            GeoPoint(41.4161959, -73.5061097),
+            GeoPoint(41.4163569, -73.5059756),
+            GeoPoint(41.4164802, -73.5059139),
+            GeoPoint(41.4166975, -73.5058442),
+            GeoPoint(41.4170864, -73.505761),
+            GeoPoint(41.4178616, -73.5056296),
+            GeoPoint(41.4179313, -73.5063431),
+            GeoPoint(41.4179313, -73.5067105),
+            GeoPoint(41.4179233, -73.5067695),
+            GeoPoint(41.4178857, -73.5070646),
+            GeoPoint(41.4178535, -73.5072121),
+            GeoPoint(41.4177355, -73.5075715),
+            GeoPoint(41.4176631, -73.5077244),
+            GeoPoint(41.4175478, -73.5079122),
+            GeoPoint(41.4173064, -73.5082206),
+            GeoPoint(41.4172908, -73.5082356),
         )
-        locationProvider = SimulationLocationProvider.create(interpolationStrategy)
-        tomTomNavigation.locationProvider = locationProvider
-        locationProvider.enable()
-    }
+        .map { GeoLocation(it) }
+        saveGeoListToFile("simulatedroute.ky", route.routePoints.map { GeoPoint(it.coordinate.latitude, it.coordinate.longitude) })
+         val simulationStrategy = InterpolationStrategy(
+//             route.routePoints.map { GeoLocation(it.coordinate) },
+             simulation,
+             currentSpeed = Speed.Companion.milesPerHour(simulationSpeed)
+             )
+         locationProvider = SimulationLocationProvider.create(strategy = simulationStrategy)
+         tomTomNavigation.locationProvider = locationProvider
+         locationProvider.enable()
+     }
+
+//    private fun setSimulationLocationProviderToNavigation(route: Route) {
+//
+//        val interpolationStrategy = InterpolationStrategy(
+//            locations = route.geometry.map { GeoLocation(it) },
+//            currentSpeed = Speed.Companion.milesPerHour(simulationSpeed)
+//        )
+//        locationProvider = SimulationLocationProvider.create(interpolationStrategy)
+//        tomTomNavigation.locationProvider = locationProvider
+//        locationProvider.enable()
+//    }
 
     /**
      * Stop the navigation process using NavigationFragment.
@@ -761,6 +990,7 @@ class BasicNavigationActivity : AppCompatActivity() {
      * Don‚Äôt forget to reset any map settings that were changed, such as camera tracking, location marker, and map padding.
      */
     private fun stopNavigation() {
+        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         navigationFragment.stopNavigation()
         mapFragment.currentLocationButton.visibilityPolicy =
             VisibilityPolicy.InvisibleWhenRecentered
@@ -870,4 +1100,27 @@ class BasicNavigationActivity : AppCompatActivity() {
     companion object {
         private const val ZOOM_TO_ROUTE_PADDING = 100
     }
+
+    fun saveGeoListToFile(name: String, route: List<GeoPoint>)
+    {
+        var res = "val simulation = listOf(\n"
+        route.forEachIndexed { index, routePoint ->
+            res += "\tGeoPoint(${routePoint.latitude}, ${routePoint.longitude}),\n"
+        }
+        res += ")\n"
+
+        saveStringToFile(name, res)
+    }
+    fun saveStringToFile(name: String, content: String)
+    {
+        try {
+            val outputStreamWriter =
+                OutputStreamWriter(openFileOutput(name, MODE_PRIVATE))
+            outputStreamWriter.write(content)
+            outputStreamWriter.close()
+        } catch (e: IOException) {
+            Log.e("Exception", "File write failed: $e")
+        }
+    }
+
 }
